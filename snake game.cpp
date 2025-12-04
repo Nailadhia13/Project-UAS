@@ -18,6 +18,8 @@ int skorTertinggi = 0;
 
 int arahX = 1, arahY = 0; // arah awal ke kanan
 
+int nyawa = 3;
+
 
 // ================== function untuk buat file text / nyimpen skor ==================
 void muatSkorTertinggi() {
@@ -115,6 +117,26 @@ void input() {
 }
 
 
+// ================== kehilangan nyawa (kalo nabrak dinding / badan) ==================
+bool kehilanganNyawa() {
+    nyawa--;
+    if (nyawa > 0) {
+        // tampilkan pesan singkat
+        mvprintw(TINGGI + 2, 0, "Anda kehilangan nyawa! Sisa nyawa: %d", nyawa);
+        refresh();
+        napms(1000); // delay 1 detik (ncurses)
+        mvprintw(TINGGI + 2, 0, "                                       ");
+        refresh();
+        // reset posisi ular (tetap pertahankan skor & skor tertinggi)
+        mulaiGame();
+        return true; // lanjutkan game
+    } else {
+        // nyawa habis -> game over
+        return false;
+    }
+}
+
+
 // ================== function logika gerakan si uler ==================
 bool updateGame() {
     // ini buat ngegeser biar tu tubuh uler ngikutin kepalanya pergi 
@@ -127,15 +149,16 @@ bool updateGame() {
     ularX[0] += arahX;
     ularY[0] += arahY;
 
-    // kalo nabrak dinding kalah 
+    // kalo nabrak dinding ngurangin nyawa 
     if (ularX[0] <= 0 || ularX[0] >= LEBAR || ularY[0] <= 0 || ularY[0] >= TINGGI) {
         return false;
     }
 
-    // kalo nabrak badan sendiri kalah uga
+    // kalo nabrak badan sendiri ngurangin nyawa uga
     for (int i = 1; i < panjangUlar; i++) {
         if (ularX[0] == ularX[i] && ularY[0] == ularY[i]) {
-            return false;
+            bool masihHidup = kehilanganNyawa();
+            return masihHidup;
         }
     }
 
