@@ -36,6 +36,22 @@ void simpanSkorTertinggi() {
     }
 }
 
+// ================== pause game ==================
+void pauseGame() {
+    mvprintw(TINGGI + 2, 0, "[PAUSED] Tekan 'P' lagi untuk lanjut...");
+    refresh();
+
+    int tombol;
+    while (true) {
+        tombol = getch();
+        if (tombol == 'p' || tombol == 'P') {
+            mvprintw(TINGGI + 2, 0, "                                   ");
+            refresh();
+            break;
+        }
+    }
+}
+
 
 // ================== setup game ==================
 void mulaiGame() {
@@ -68,9 +84,9 @@ void gambar() {
         mvprintw(i, LEBAR, "#");
     }
 
-    // gambar uler (kepala = O, badan = o)
+    // gambar uler (kepala = @, badan = o)
     for (int i = 0; i < panjangUlar; i++) {
-        mvprintw(ularY[i], ularX[i], (i == 0 ? "O" : "o"));
+        mvprintw(ularY[i], ularX[i], (i == 0 ? "@" : "o"));
     }
 
     // gambar makanan
@@ -83,10 +99,12 @@ void gambar() {
 }
 
 
-// ================== cpntrol input ==================
+// ================== control input ==================
 void input() {
-    timeout(120); // kecepatan gerakan uler
+    timeout(100); // kecepatan gerakan uler
     int tombol = getch();
+
+    if (tombol == 'p' || tombol == 'P') { pauseGame(); return; } // tekan P buat pause
 
     switch (tombol) {
         case KEY_UP: if (arahY != 1) { arahX = 0; arahY = -1; } break;
@@ -171,5 +189,4 @@ int main() {
 
     endwin();
     return 0;
-}
-
+} 
