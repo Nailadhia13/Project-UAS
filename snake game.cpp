@@ -12,15 +12,16 @@ const int TINGGI = 20; // ini juga
 
 int ularX[100], ularY[100]; // posisi setiap bagian tubuh uler
 int panjangUlar = 3;
-
 int makanX, makanY;
+
 int skor = 0;
 int skorTertinggi = 0;
- 
-int arahX = 1, arahY = 0; // arah awal ke kanan
 
+int arahX = 1, arahY = 0; // arah awal ke kanan
 int nyawa = 3;
 
+bool mintaRestart = false;
+bool mintaKeluar = false;
 
 // ================== function untuk buat file text / nyimpen skor ==================
 void muatSkorTertinggi() {
@@ -42,25 +43,34 @@ void simpanSkorTertinggi() {
 // ================== pause game ==================
 
 void pauseGame() {
-    mvprintw(TINGGI + 2, 0, "[PAUSED] Tekan 'P' lagi untuk lanjut...");
+    mvprintw(TINGGI + 2, 0, "[PAUSED] P:Lanjut | R:Restart | Q:Quit  ");
     refresh();
 
     int tombol;
     while (true) {
         tombol = getch();
         if (tombol == 'p' || tombol == 'P') {
-            mvprintw(TINGGI + 2, 0, "                                   ");
+            mvprintw(TINGGI + 2, 0, "                                      ");
             refresh();
+            break;
+        }
+        else if (tombol == 'r' || tombol == 'R') {
+            mintaRestart = true;
+            break;
+        }
+        else if (tombol == 'q' || tombol == 'Q') {
+            mintaKeluar = true;
             break;
         }
     }
 }
 
-// ================== setup game ==================
+// ================== setup posisi ==================
 
-void mulaiGame() {
-    panjangUlar = 3;
-    skor = 0;
+void resetPosisi() {
+    // arah dikembalikan ke default biar ga langsung nabrak pas respawn
+    arahX = 1;
+    arahY = 0;
 
     // posisi awal tubuh uler
     for (int i = 0; i < panjangUlar; i++) {
@@ -69,9 +79,19 @@ void mulaiGame() {
     }
 
     // spawn makanan
- 	makanX = (rand() % (LEBAR - 2)) + 1;
-	makanY = (rand() % (TINGGI - 2)) + 1;
+    makanX = (rand() % (LEBAR - 2)) + 1;
+    makanY = (rand() % (TINGGI - 2)) + 1;
+}
 
+// ================== setup game total ==================
+
+void mulaiGame() {
+    panjangUlar = 3;
+    skor = 0;
+    nyawa = 3; 
+    mintaRestart = false; 
+    mintaKeluar = false;  
+    resetPosisi(); 
 }
 
 // ================== gambar map ==================
@@ -79,37 +99,37 @@ void mulaiGame() {
 void gambar() {
     erase();
 
-   // DINDING ATAS & BAWAH (HORIZONTAL)
-	attron(COLOR_PAIR(1));
-	for (int x = 0; x <= LEBAR; x++) {
-    	mvprintw(0, x, "#");
-    	mvprintw(TINGGI, x, "#");
-	}
-	attroff(COLOR_PAIR(1));
+    // DINDING ATAS & BAWAH (HORIZONTAL)
+    attron(COLOR_PAIR(1));
+    for (int x = 0; x <= LEBAR; x++) {
+        mvprintw(0, x, "#");
+        mvprintw(TINGGI, x, "#");
+    }
+    attroff(COLOR_PAIR(1));
 
-// DINDING KIRI & KANAN (VERTIKAL)
-	attron(COLOR_PAIR(1));
-	for (int y = 0; y <= TINGGI; y++) {
-   		mvprintw(y, 0, "#");
-    	mvprintw(y, LEBAR, "#");
-	}	
-	attroff(COLOR_PAIR(1));
-
+    // DINDING KIRI & KANAN (VERTIKAL)
+    attron(COLOR_PAIR(1));
+    for (int y = 0; y <= TINGGI; y++) {
+        mvprintw(y, 0, "#");
+        mvprintw(y, LEBAR, "#");
+    }
+    attroff(COLOR_PAIR(1));
 
     // gambar uler (kepala = $, badan = o)
     for (int i = 0; i < panjangUlar; i++) {
-		attron(COLOR_PAIR(2));
-		mvprintw(ularY[i], ularX[i], (i == 0 ? "$" : "o"));
-		attroff(COLOR_PAIR(2));
+        attron(COLOR_PAIR(2));
+        mvprintw(ularY[i], ularX[i], (i == 0 ? "$" : "o"));
+        attroff(COLOR_PAIR(2));
     }
 
     // gambar makanan
-	attron(COLOR_PAIR(3));
-	mvprintw(makanY, makanX, "*");
-	attroff(COLOR_PAIR(3));
+    attron(COLOR_PAIR(3));
+    mvprintw(makanY, makanX, "*");
+    attroff(COLOR_PAIR(3));
 
-    // nganuin skor
-    mvprintw(TINGGI + 1, 0, "Skor : %d  Skor Tertinggi: %d", skor, skorTertinggi);
+    // nganuin skor, nyawa, dan paus
+    mvprintw(TINGGI + 1, 0, "Skor: %d  High: %d  Nyawa: %d", skor, skorTertinggi, nyawa);
+    mvprintw(TINGGI + 2, 0, "Tekan 'P' untuk Pause");
 
     refresh();
 }
@@ -135,14 +155,11 @@ void input() {
 bool kehilanganNyawa() {
     nyawa--;
     if (nyawa > 0) {
-        // tampilkan pesan singkat
-        mvprintw(TINGGI + 2, 0, "Anda kehilangan nyawa! Sisa nyawa: %d", nyawa);
+        mvprintw(TINGGI + 2, 0, "Anda kehilangan nyawa! Sisa: %d      ", nyawa);
         refresh();
-        napms(1000); // delay 1 detik (ncurses)
-        mvprintw(TINGGI + 2, 0, "                                       ");
-        refresh();
-        // reset posisi ular (tetap pertahankan skor & skor tertinggi)
-        mulaiGame();
+        napms(1000); // delay 1 detik
+        // reset posisi ular SAJA (skor & panjang aman)
+        resetPosisi();
         return true; // lanjutkan game
     } else {
         // nyawa habis -> game over
@@ -150,10 +167,9 @@ bool kehilanganNyawa() {
     }
 }
 
-
 // ================== function logika gerakan si uler ==================
 bool updateGame() {
-    // ini buat ngegeser biar tu tubuh uler ngikutin kepalanya pergi 
+    // ini buat ngegeser biar tu tubuh uler ngikutin kepalanya pergi
     for (int i = panjangUlar - 1; i > 0; i--) {
         ularX[i] = ularX[i - 1];
         ularY[i] = ularY[i - 1];
@@ -163,46 +179,37 @@ bool updateGame() {
     ularX[0] += arahX;
     ularY[0] += arahY;
 
-    // kalo nabrak dinding ngurangin nyawa 
+    // kalo nabrak dinding ngurangin nyawa
     if (ularX[0] <= 0 || ularX[0] >= LEBAR || ularY[0] <= 0 || ularY[0] >= TINGGI) {
-        return false;
+        return kehilanganNyawa();
     }
 
     // kalo nabrak badan sendiri ngurangin nyawa uga
     for (int i = 1; i < panjangUlar; i++) {
         if (ularX[0] == ularX[i] && ularY[0] == ularY[i]) {
-            bool masihHidup = kehilanganNyawa(); //Panggil kehilanganNyawa() dan simpan hasilnya (true/false) ke variabel masihHidup
+            bool masihHidup = kehilanganNyawa(); //Panggil kehilanganNyawa()
             return masihHidup;
         }
     }
 
     // makan makanan
-	if (ularX[0] == makanX && ularY[0] == makanY) {
-    skor++;
-    
-    // update skor tertinggi kalo dapet skor yg lebih tinggi
-    if (skor > skorTertinggi) {
-        skorTertinggi = skor;
-        simpanSkorTertinggi(); // supaya langsung tersimpan ke file
+    if (ularX[0] == makanX && ularY[0] == makanY) {
+        skor++;
+
+        // update skor tertinggi kalo dapet skor yg lebih tinggi
+        if (skor > skorTertinggi) {
+            skorTertinggi = skor;
+            simpanSkorTertinggi(); // supaya langsung tersimpan ke file
+        }
+
+        panjangUlar++;
+
+        // spawn mamaman baru
+        makanX = rand() % (LEBAR - 1) + 1;
+        makanY = rand() % (TINGGI - 1) + 1;
     }
 
-    panjangUlar++;
-
-    // spawn mamaman baru
-    makanX = rand() % (LEBAR - 1) + 1;
-    makanY = rand() % (TINGGI - 1) + 1;
-}
-
     return true; // lanjutin gamenya
-}
-//===================function untuk tampiln game over================
-void gameOverScreen() {
-	timeout(-1);
-    clear();
-    mvprintw(TINGGI/2 - 1, (LEBAR/2) - 5, "GAME OVER!");
-    mvprintw(TINGGI/2, (LEBAR/2) - 12, "Tekan tombol apa saja untuk keluar...");
-    refresh();
-    getch(); // tunggu pemain pencet tombol
 }
 
 // ================== program utamanya ini ==================
@@ -215,45 +222,78 @@ int main() {
     keypad(stdscr, TRUE);
     noecho();
     curs_set(0);
-    
+
     if (has_colors()) {
-    start_color();
-    use_default_colors();
+        start_color();
+        use_default_colors();
 
-    init_pair(1, COLOR_GREEN, -1);   // dinding IJOKK soft
-    init_pair(2, COLOR_BLACK, -1);   // ular hitam
-    init_pair(3, COLOR_BLUE, -1);    // makanan biru
-}
-
-    mulaiGame();
-
-    // looping game yang utama
-    while (true) {
-        input();                    // baca tombol
-
-        if (!updateGame()) break;   // kalau false = game over
-
-        gambar();                   // gambar setelah update
+        init_pair(1, COLOR_GREEN, -1);   // dinding IJOKK soft
+        init_pair(2, COLOR_BLACK, -1);   // ular hitam
+        init_pair(3, COLOR_BLUE, -1);    // makanan biru
     }
 
-    // nyimpen skor tertinggi
-    if (skor > skorTertinggi) {
-        skorTertinggi = skor;
-        simpanSkorTertinggi();
-    }
+    int pilihanTombol = 0;
 
-    clear();
-    mvprintw(10, 10, "GAME OVER!");
-    mvprintw(11, 10, "Skor Anda : %d", skor);
-    mvprintw(12, 10, "Skor Tertinggi : %d", skorTertinggi);
-    mvprintw(14, 10, "Tekan tombol apapun untuk keluar!!");
-    
-    refresh();
-    timeout(-1);
+    // LOOP UTAMA GAME
+    do {
+        mulaiGame();
 
-    getch();
+        // looping game yang utama
+        while (true) {
+            input(); // baca tombol
+            
+            // ngeek apakah ada perintah dari menu Pause
+            if (mintaRestart || mintaKeluar) {
+                break; // keluar dari loop game utama
+            }
+
+            if (!updateGame()) break; // kalau false = game over (nyawa habis)
+            
+            gambar(); // gambar setelah update
+        }
+
+        // nyimpen skor tertinggi (selalu simpan saat loop berakhir)
+        if (skor > skorTertinggi) {
+            skorTertinggi = skor;
+            simpanSkorTertinggi();
+        }
+
+        // LOGIKA SETELAH LOOP BERAKHIR
+        
+        // kalo minta keluar dari menu pause
+        if (mintaKeluar) {
+            break; // keluar dari do-while, langsung tutup program
+        }
+
+        // kalo minta restart dari menu Pause
+        if (mintaRestart) {
+            continue; // langsung loop ulang do-while (mulaiGame lagi) tanpa layar Game Over
+        }
+
+        // kalo game berakhir karena Game Over (nyawa habis)
+        timeout(-1); // matikan timeout biar nunggu input user
+        clear();
+        attron(A_BOLD);
+        mvprintw(TINGGI/2 - 2, (LEBAR/2) - 5, "GAME OVER!");
+        attroff(A_BOLD);
+        mvprintw(TINGGI/2 - 1, (LEBAR/2) - 7, "Skor Akhir : %d", skor);
+        mvprintw(TINGGI/2, (LEBAR/2) - 9, "High Score : %d", skorTertinggi);
+
+        mvprintw(TINGGI/2 + 2, (LEBAR/2) - 15, "Tekan 'R' untuk Restart");
+        mvprintw(TINGGI/2 + 3, (LEBAR/2) - 15, "Tekan 'Q' untuk Keluar");
+        refresh();
+
+        // nunggu pencet R atau Q
+        while(true) {
+            pilihanTombol = getch();
+            if (pilihanTombol == 'r' || pilihanTombol == 'R' ||
+                pilihanTombol == 'q' || pilihanTombol == 'Q') {
+                break;
+            }
+        }
+
+    } while (pilihanTombol == 'r' || pilihanTombol == 'R' || mintaRestart);
 
     endwin();
     return 0;
 }
-
