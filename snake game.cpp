@@ -23,6 +23,8 @@ int nyawa = 3;
 bool mintaRestart = false;
 bool mintaKeluar = false;
 
+char namaPlayer [20];
+
 // ================== function untuk buat file text / nyimpen skor ==================
 void muatSkorTertinggi() {
     ifstream file("skortertinggi.txt");
@@ -130,6 +132,8 @@ void gambar() {
     // nganuin skor, nyawa, dan paus
     mvprintw(TINGGI + 1, 0, "Skor: %d  High: %d  Nyawa: %d", skor, skorTertinggi, nyawa);
     mvprintw(TINGGI + 2, 0, "Tekan 'P' untuk Pause");
+    mvprintw(TINGGI + 3, 0, "Player: %s", namaPlayer);
+
 
     refresh();
 }
@@ -212,6 +216,51 @@ bool updateGame() {
     return true; // lanjutin gamenya
 }
 
+// ================== fitur untuk milih start dan exit ==================
+int menuStart() {
+    clear();
+    timeout(-1); // matikan timeout (nunggu input)
+
+    attron(A_BOLD);
+    mvprintw(5, (LEBAR/2) - 6, "SNAKE GAME");
+    attroff(A_BOLD);
+
+    mvprintw(7, (LEBAR/2) - 8, "1. START GAME");
+    mvprintw(8, (LEBAR/2) - 8, "2. EXIT");
+
+    mvprintw(10, (LEBAR/2) - 12, "Pilih (1 / 2): ");
+    refresh();
+
+    int pilihan;
+    while (true) {
+        pilihan = getch();
+        if (pilihan == '1' || pilihan == '2') {
+            return pilihan;
+        }
+    }
+}
+
+void inputNamaPlayer() {
+    clear();
+    echo();            
+    curs_set(1);       
+    timeout(-1);       
+
+    attron(A_BOLD);
+    mvprintw(5, (LEBAR/2) - 10, "MASUKKAN NAMA PLAYER");
+    attroff(A_BOLD);
+
+    mvprintw(7, (LEBAR/2) - 12, "Nama (max 15 huruf): ");
+    refresh();
+
+    getnstr(namaPlayer, 15); // input nama
+
+    noecho();
+    curs_set(0);
+}
+
+
+
 // ================== program utamanya ini ==================
 int main() {
     srand(time(0));
@@ -231,6 +280,18 @@ int main() {
         init_pair(2, COLOR_BLACK, -1);   // ular hitam
         init_pair(3, COLOR_BLUE, -1);    // makanan biru
     }
+
+    int pilihanMenu = menuStart();
+
+    if (pilihanMenu == '2') {
+        endwin();
+        return 0; // keluar
+    }
+
+    inputNamaPlayer();
+
+    
+
 
     int pilihanTombol = 0;
 
